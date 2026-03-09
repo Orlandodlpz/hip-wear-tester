@@ -23,7 +23,7 @@ class RunState(str, Enum):
 class MotorState(str, Enum):
     OFF = "OFF"
     SLEEP = "SLEEP"
-    RUN = "RUN"
+    RUN = "RUNNING"
 
 
 @dataclass(frozen=True)
