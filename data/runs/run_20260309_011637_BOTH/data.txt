@@ -1,0 +1,11 @@
+# HIP WEAR TESTER RUN
+# Mode: BOTH
+# Started: 2026-03-09T01:16:37
+# Columns: elapsed_s, elapsed_hhmmss, temp_s1_c, temp_s2_c, side_motor, top_motor_s1, top_motor_s2, message
+
+elapsed_s,elapsed_hhmmss,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
+16.09,00:00:16,29.241,29.069,RUN,RUN,RUN,Resumed.
+17.13,00:00:17,31.543,31.192,RUN,RUN,RUN,Resumed.
+
+# Ended: 2026-03-09T01:16:38
+# End State: ERROR

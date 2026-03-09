@@ -1,0 +1,3 @@
+wall_time_iso,elapsed_s,elapsed_hhmmss,mode,run_state,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
+2026-03-09T00:29:45,7.68,00:00:07,BOTH,RUNNING,29.465,29.539,RUN,RUN,RUN,Resumed.
+2026-03-09T00:29:46,8.71,00:00:08,BOTH,RUNNING,31.595,31.658,RUN,RUN,RUN,Resumed.

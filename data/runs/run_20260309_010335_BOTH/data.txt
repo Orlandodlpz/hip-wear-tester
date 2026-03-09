@@ -1,0 +1,30 @@
+# HIP WEAR TESTER RUN
+# Mode: BOTH
+# Started: 2026-03-09T01:03:35
+# Columns: elapsed_s, elapsed_hhmmss, temp_s1_c, temp_s2_c, side_motor, top_motor_s1, top_motor_s2, message
+
+elapsed_s,elapsed_hhmmss,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
+0.14,00:00:00,25.063,25.114,RUN,RUN,RUN,Test started (BOTH).
+1.18,00:00:01,28.491,28.656,RUN,RUN,RUN,Test started (BOTH).
+2.22,00:00:02,30.919,30.946,RUN,RUN,RUN,Test started (BOTH).
+3.23,00:00:03,32.602,32.638,RUN,RUN,RUN,Test started (BOTH).
+4.26,00:00:04,33.820,33.681,RUN,RUN,RUN,Test started (BOTH).
+5.30,00:00:05,34.678,34.515,RUN,RUN,RUN,Test started (BOTH).
+6.33,00:00:06,35.269,35.136,RUN,RUN,RUN,Test started (BOTH).
+7.37,00:00:07,35.623,35.604,RUN,RUN,RUN,Test started (BOTH).
+8.40,00:00:08,35.872,35.862,RUN,RUN,RUN,Test started (BOTH).
+9.42,00:00:09,36.160,35.993,RUN,RUN,RUN,Test started (BOTH).
+10.43,00:00:10,36.204,36.173,RUN,RUN,RUN,Test started (BOTH).
+11.46,00:00:11,36.239,36.274,RUN,RUN,RUN,Test started (BOTH).
+12.50,00:00:12,36.237,36.366,RUN,RUN,RUN,Test started (BOTH).
+13.56,00:00:13,36.306,36.425,RUN,RUN,RUN,Test started (BOTH).
+14.58,00:00:14,36.345,36.493,RUN,RUN,RUN,Test started (BOTH).
+15.61,00:00:15,36.331,36.487,RUN,RUN,RUN,Test started (BOTH).
+16.66,00:00:16,36.308,36.599,RUN,RUN,RUN,Test started (BOTH).
+17.67,00:00:17,36.442,36.627,RUN,RUN,RUN,Test started (BOTH).
+18.70,00:00:18,36.442,36.467,RUN,RUN,RUN,Test started (BOTH).
+19.74,00:00:19,36.496,36.541,RUN,RUN,RUN,Test started (BOTH).
+20.78,00:00:20,36.536,36.576,RUN,RUN,RUN,Test started (BOTH).
+21.80,00:00:21,36.583,36.533,RUN,RUN,RUN,Test started (BOTH).
+22.83,00:00:22,36.524,36.510,RUN,RUN,RUN,Test started (BOTH).
+23.86,00:00:23,36.444,36.501,RUN,RUN,RUN,Test started (BOTH).
