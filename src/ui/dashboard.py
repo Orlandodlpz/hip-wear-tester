@@ -223,6 +223,8 @@ class Dashboard(tk.Frame):
                 self.logger.log(
                     elapsed_s=status.elapsed_s,
                     elapsed_hhmmss=self._fmt_hhmmss(status.elapsed_s),
+                    mode=(status.station_mode.value if status.station_mode else "UNKNOWN"),
+                    run_state=status.run_state.value,
                     t1=float(temps.get("S1", 0.0)),
                     t2=float(temps.get("S2", 0.0)),
                     side=status.side_motor.value,

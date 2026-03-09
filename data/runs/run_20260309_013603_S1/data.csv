@@ -1,0 +1,6 @@
+wall_time_iso,elapsed_s,elapsed_hhmmss,mode,run_state,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
+2026-03-09T01:36:03,0.11,00:00:00,S1,RUNNING,25.311,24.567,RUN,RUN,SLEEP,Test started (S1).
+2026-03-09T01:36:04,1.12,00:00:01,S1,RUNNING,28.834,24.378,RUN,RUN,SLEEP,Test started (S1).
+2026-03-09T01:36:06,2.13,00:00:02,S1,RUNNING,31.145,24.239,RUN,RUN,SLEEP,Test started (S1).
+2026-03-09T01:36:07,3.14,00:00:03,S1,RUNNING,32.801,24.196,RUN,RUN,SLEEP,Test started (S1).
+2026-03-09T01:36:07,,,S1,END:IDLE,,,,,,

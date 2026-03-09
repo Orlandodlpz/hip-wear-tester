@@ -1,6 +1,0 @@
-wall_time_iso,elapsed_s,elapsed_hhmmss,mode,run_state,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
-2026-03-09T00:23:48,0.15,00:00:00,BOTH,RUNNING,24.948,24.982,RUN,RUN,RUN,Test started (BOTH).
-2026-03-09T00:23:49,1.18,00:00:01,BOTH,RUNNING,28.438,28.431,RUN,RUN,RUN,Test started (BOTH).
-2026-03-09T00:23:50,2.20,00:00:02,BOTH,RUNNING,30.801,30.815,RUN,RUN,RUN,Test started (BOTH).
-2026-03-09T00:23:51,3.22,00:00:03,BOTH,RUNNING,32.574,32.582,RUN,RUN,RUN,Test started (BOTH).
-2026-03-09T00:23:52,4.25,00:00:04,BOTH,RUNNING,33.739,33.757,RUN,RUN,RUN,Test started (BOTH).

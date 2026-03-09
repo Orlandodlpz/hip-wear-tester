@@ -126,7 +126,6 @@ class logger:
             import matplotlib.pyplot as plt
             from matplotlib.ticker import FuncFormatter, MaxNLocator
         except Exception:
-            # If matplotlib isn't installed yet, you still get data.csv
             return
 
         def fmt_hhmm(x, _pos=None):
