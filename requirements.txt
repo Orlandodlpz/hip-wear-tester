@@ -1,2 +1,0 @@
-sudo apt install -y python3-tk
-sudo apt install -y python3-matplotlib

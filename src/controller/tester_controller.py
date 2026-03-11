@@ -156,7 +156,7 @@ class TesterController:
 
     def stop_test(self) -> None:
         if self._run_state == RunState.IDLE:
-            return  # already stopped; no-op is fine
+            return  # already stopped
         # Shutdown everything
         self._motor.stop_all()
 
