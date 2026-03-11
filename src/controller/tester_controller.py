@@ -1,5 +1,3 @@
-# src/controller/tester_controller.py
-
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -41,12 +39,11 @@ class TesterStatus:
 
 
 class MotorIO:
-    """
-    Hardware abstraction.
+    # Hardware abstraction.
 
-    Today: Simulated/placeholder.
-    Later: implement with serial commands to Arduino(s).
-    """
+    # Today: Simulated/placeholder.
+    # Future Weeks: implement with serial commands to Arduino(s).
+    
     def start_side(self) -> None:
         raise NotImplementedError
 
@@ -54,16 +51,16 @@ class MotorIO:
         raise NotImplementedError
 
     def set_top_motors(self, *, s1_run: bool, s2_run: bool) -> None:
-        """Enable/disable top motors by station."""
+        # Enable/disable top motors by station.
         raise NotImplementedError
 
     def stop_all(self) -> None:
-        """Emergency stop / full shutdown."""
+        # Emergency stop / full shutdown.
         raise NotImplementedError
 
 
 class SimMotorIO(MotorIO):
-    """Safe simulation backend so the controller works before hardware exists."""
+    # Safe simulation backend so the controller works before hardware exists.
     def __init__(self) -> None:
         self.side = MotorState.OFF
         self.top_s1 = MotorState.SLEEP
@@ -86,13 +83,11 @@ class SimMotorIO(MotorIO):
 
 
 class TesterController:
-    """
-    State machine + truth table.
-
-    - Station mode selection allowed only in IDLE
-    - Start/Stop/Pause/Resume control the motors via MotorIO
-    - UI should call get_status() to render everything
-    """
+    # State machine.
+    # - Station mode selection allowed only in IDLE
+    # - Start/Stop/Pause/Resume control the motors via MotorIO
+    # - UI should call get_status() to render everything
+    
     def __init__(self, motor_io: Optional[MotorIO] = None) -> None:
         self._motor = motor_io if motor_io is not None else SimMotorIO()
 
@@ -173,7 +168,7 @@ class TesterController:
         self._last_message = "Stopped. Sleeping (IDLE)."
 
     def estop(self) -> None:
-        """Hard stop: go to ERROR state."""
+        # Hard stop: go to ERROR state.
         self._motor.stop_all()
         self._run_state = RunState.ERROR
         self._last_message = "E-STOP triggered. Motors off. Reset required."
@@ -208,7 +203,6 @@ class TesterController:
         )
 
     def get_status_dict(self) -> dict:
-        """Handy if your UI likes plain dicts."""
         return asdict(self.get_status())
 
     # -------------------------

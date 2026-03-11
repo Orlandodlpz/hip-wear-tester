@@ -130,10 +130,8 @@ class Dashboard(tk.Frame):
     # RESET button behavior
     # -----------------
     def _reset_test_ui(self) -> None:
-        """
-        Reset Test = stop the controller + clear the current run graph.
-        Keeps the selected station mode so you can start again quickly.
-        """
+        # Reset Test = stop the controller + clear the current run graph.
+        # Keeps the selected station mode so you can start again quickly.
         if not messagebox.askyesno("Reset Test", "Reset will STOP the test and clear the graph.\nContinue?"):
             return
 

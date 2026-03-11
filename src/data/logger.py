@@ -1,16 +1,13 @@
-# src/data/session_logger.py
-
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 import csv
 
 class logger:
-    """
-    Creates ONE folder per test and outputs:
-      - data.csv
-      - graph.png
-    """
+    # Creates ONE folder per test and outputs:
+      # - data.csv
+      # - graph.png
+      
     def __init__(self, base_dir: Path | None = None) -> None:
         self.base_dir = base_dir if base_dir is not None else (Path.cwd() / "data" / "runs")
         self.base_dir.mkdir(parents=True, exist_ok=True)

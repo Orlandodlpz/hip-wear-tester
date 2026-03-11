@@ -2,11 +2,9 @@ import random
 import time
 
 class SimSensorManager:
-    """
-    Generates believable temps for Station 1 and Station 2.
-    - IDLE drifts toward room temp.
-    - RUNNING drifts toward a warm operating temp.
-    """
+    # Generates believable temps for Station 1 and Station 2.
+    # - IDLE drifts toward room temp.
+    # - RUNNING drifts toward a warm operating temp.
     
     def __init__(self) -> None:
         self._last_t = time.time()
