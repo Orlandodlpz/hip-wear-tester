@@ -54,7 +54,7 @@ class TempDisplayPanel(tk.LabelFrame):
         self.s1_state.configure(text=("Active" if (running and active_s1) else "Inactive"))
         self.s2_state.configure(text=("Active" if (running and active_s2) else "Inactive"))
 
-        # Append history (always append so the mini-graphs look alive)
+        # Append history (append so the mini-graphs look alive)
         self._s1_hist.append(t1)
         self._s2_hist.append(t2)
         self._s1_hist = self._s1_hist[-self._max_hist:]

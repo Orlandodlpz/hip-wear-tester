@@ -77,5 +77,4 @@ class ButtonsPanel(tk.LabelFrame):
         enabled = status.run_state in (RunState.RUNNING, RunState.PAUSED)
         self.btn_pause.configure(state=("normal" if enabled else "disabled"))
         self.btn_stop.configure(state=("normal" if enabled else "disabled"))
-        # allow reset any time (it just stops + clears), but you can disable if you want
         self.btn_reset.configure(state="normal")

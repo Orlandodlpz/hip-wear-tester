@@ -106,7 +106,7 @@ class TempGraphPanel(tk.LabelFrame):
         c.create_text((x0 + x1) / 2, h - 18, text="Time (HH:MM)", fill=FG)
         c.create_text(18, (y0 + y1) / 2, text="Temp (°C)", fill=FG, angle=90)
 
-        # Draw series (downsampled for performance if needed)
+        # Draw series (downsampled for performance)
         self._draw_series(self.s1_points, x0, y0, x1, y1, max_x, y_min, y_max, color=GREEN, dash=None)
         self._draw_series(self.s2_points, x0, y0, x1, y1, max_x, y_min, y_max, color=BLUE, dash=(4, 3))
 
@@ -162,7 +162,6 @@ class TempGraphPanel(tk.LabelFrame):
     @staticmethod
     def _nice_y_step(y_min: float, y_max: float) -> float:
         span = y_max - y_min
-        # Aim ~8 horizontal lines
         raw = span / 8.0
         # Nice steps: 0.5, 1, 2, 5
         for step in [0.5, 1, 2, 5, 10]:
