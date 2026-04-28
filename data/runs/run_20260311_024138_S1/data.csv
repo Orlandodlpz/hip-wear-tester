@@ -1,5 +1,0 @@
-wall_time_iso,elapsed_s,elapsed_hhmmss,mode,run_state,temp_s1_c,temp_s2_c,side_motor,top_motor_s1,top_motor_s2,message
-2026-03-11T02:41:38,0.15,00:00:00,S1,RUNNING,25.173,24.400,RUNNING,RUNNING,SLEEP,Test started (S1).
-2026-03-11T02:41:39,1.19,00:00:01,S1,RUNNING,28.531,24.159,RUNNING,RUNNING,SLEEP,Test started (S1).
-2026-03-11T02:41:40,2.21,00:00:02,S1,RUNNING,30.940,24.166,RUNNING,RUNNING,SLEEP,Test started (S1).
-2026-03-11T02:41:41,,,S1,END:IDLE,,,,,,

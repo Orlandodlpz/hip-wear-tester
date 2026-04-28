@@ -20,6 +20,7 @@ class StatusPanel(tk.LabelFrame):
             ("Run State", "run_state"),
             ("Mode", "station_mode"),
             ("Elapsed (HH:MM)", "elapsed_hhmm"),
+            ("Cycles", "cycles"),
             ("Side Motor", "side_motor"),
             ("Top Motor (S1)", "top_motor_station1"),
             ("Top Motor (S2)", "top_motor_station2"),
@@ -51,6 +52,11 @@ class StatusPanel(tk.LabelFrame):
         self._vals["run_state"].configure(text=state, fg=color)
         self._vals["station_mode"].configure(text=(status.station_mode.value if status.station_mode else "—"), fg=BLUE)
         self._vals["elapsed_hhmm"].configure(text=fmt_hhmm(status.elapsed_s), fg=FG)
+
+        if status.run_state.value in (RunState.RUNNING.value, RunState.PAUSED.value):
+            self._vals["cycles"].configure(text=str(status.completed_cycles), fg=FG)
+        else:
+            self._vals["cycles"].configure(text="—", fg=FG)
 
         self._vals["side_motor"].configure(text=status.side_motor.value)
         self._vals["top_motor_station1"].configure(text=status.top_motor_station1.value)

@@ -44,17 +44,17 @@ class logger:
 
         # Normal CSV header row
         self._writer.writerow([
-            "wall_time_iso",
-            "elapsed_s",
-            "elapsed_hhmmss",
-            "mode",
-            "run_state",
-            "temp_s1_c",
-            "temp_s2_c",
-            "side_motor",
-            "top_motor_s1",
-            "top_motor_s2",
-            "message",
+            "timestamp",
+            "elapsed_seconds",
+            "elapsed_time",
+            "station_mode",
+            "test_state",
+            "temp_station1_celsius",
+            "temp_station2_celsius",
+            "lateral_motor_state",
+            "top_motor_station1_state",
+            "top_motor_station2_state",
+            "log_message",
         ])
         self._fp.flush()
         return self.run_dir
