@@ -135,8 +135,8 @@ The serial port names differ between development and deployment:
 
 | Arduino | Mac (dev) | Raspberry Pi |
 |---------|-----------|--------------|
-| Lateral | `/dev/tty.usbmodem31301` | `/dev/ttyACM0` |
-| Top | `/dev/tty.usbmodem31401` | `/dev/ttyACM1` |
+| Lateral | `Check Arduino IDE` | `/dev/ttyACM0` |
+| Top | `Check Arduino IDE` | `/dev/ttyACM1` |
 
 Port configuration is in `src/controller/tester_controller.py` in the `TesterController.__init__` method.
 
