@@ -119,11 +119,89 @@ data/runs/run_20260408_143000_S1/
 - Python 3.10+
 - Raspberry Pi 4 Model B (for deployment) or macOS/Linux (for development)
 - Two Arduino boards with stepper motor drivers
-- `pyserial` for serial communication
-- `matplotlib` for graph generation
-- `tkinter` (usually included with Python)
+
+### Python Dependencies
+
+The application uses three external Python packages:
+
+| Package | Used by | Why |
+|---------|---------|-----|
+| `pyserial` | `src/uno_comms/` | Serial communication with both Arduinos |
+| `matplotlib` | `src/data/logger.py` | Generates `graph.png` (temperature vs. time) at the end of each run |
+| `tkinter` | `src/ui/` | GUI framework |
+
+`tkinter` is part of the Python standard library on most platforms but on the Raspberry Pi it ships as a separate apt package (`python3-tk`). `pyserial` and `matplotlib` install via pip.
+
+### Raspberry Pi 4 Model B — Full Installation
+
+The following has been tested on Raspberry Pi OS Bookworm (64-bit). Run each block in a terminal on the Pi.
+
+**1. System packages** (Python, Tk for the GUI, pip):
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-pip python3-tk python3-venv git
+```
+
+**2. Project location**
+
+Clone or copy the project into the user's home directory, e.g. `/home/pi/hip-wear-tester`.
+
+**3. Python virtual environment + Python packages**
+
+Recommended: install the project's Python dependencies inside a virtual environment so they don't conflict with system packages.
+
+```bash
+cd ~/hip-wear-tester
+python3 -m venv .venv
+source .venv/bin/activate
+pip install pyserial matplotlib
+```
+
+(If you prefer to install system-wide instead of using a venv, you may need `sudo pip install pyserial matplotlib --break-system-packages` on Bookworm.)
+
+**4. Serial port permissions**
+
+The Pi user must be in the `dialout` group to access `/dev/ttyACM*` without `sudo`:
+
+```bash
+sudo usermod -aG dialout $USER
+```
+
+Log out and back in (or reboot) for the group change to take effect.
+
+**5. DS18B20 temperature sensor (1-Wire)**
+
+The DS18B20 sensors plug into the Pi's GPIO and are read via the kernel's 1-Wire interface. Enable it once:
+
+```bash
+sudo raspi-config
+# Interface Options -> 1-Wire -> Enable -> reboot
+```
+
+Wire the DS18B20 data line to GPIO 4 (physical pin 7) with a 4.7 kΩ pull-up resistor between the data line and 3.3V. After reboot, sensors should appear under `/sys/bus/w1/devices/28-*`. Confirm:
+
+```bash
+ls /sys/bus/w1/devices/
+```
+
+**6. Auto-launch the GUI on boot (optional)**
+
+If the kiosk should start automatically on the touchscreen, add a systemd user service or an autostart entry. A minimal autostart approach using LXDE:
+
+```bash
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/hip-wear-tester.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Hip Wear Tester
+Exec=/home/pi/hip-wear-tester/.venv/bin/python /home/pi/hip-wear-tester/main.py
+EOF
+```
 
 ### Running the Application
+
+From the project root, with the venv activated:
 
 ```bash
 python main.py
@@ -131,15 +209,17 @@ python main.py
 
 ### Serial Ports
 
-The serial port names differ between development and deployment:
+The serial port names differ between development and deployment. Update `TesterController.__init__` in `src/controller/tester_controller.py` to match your environment:
 
 | Arduino | Mac (dev) | Raspberry Pi |
 |---------|-----------|--------------|
-| Lateral | `Check Arduino IDE` | `/dev/ttyACM0` |
-| Top | `Check Arduino IDE` | `/dev/ttyACM1` |
+| Lateral | `/dev/tty.usbmodem31301` | `/dev/ttyACM0` |
+| Top | `/dev/tty.usbmodem31401` | `/dev/ttyACM1` |
 
 Port configuration is in `src/controller/tester_controller.py` in the `TesterController.__init__` method.
 
 ### Uploading Arduino Firmware
 
 Upload `ino_files/lat_arduino.ino` to the lateral Arduino and `ino_files/top_arduino.ino` to the top Arduino using the Arduino IDE.
+
+Both firmwares use **9600 baud** by default. If you change `Serial.begin(...)` in either `.ino`, change `baudrate=` in `TesterController.__init__` to match.
