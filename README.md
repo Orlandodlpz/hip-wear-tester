@@ -12,11 +12,22 @@ A portable hip wear testing system for orthopedic implant durability research, b
 
 ### Motor Configuration
 
-- **Lateral motor**: 13 back-and-forth steps per cycle (23 degrees each direction)
-- **Top Left motor (S1)**: 5 back-and-forth steps per cycle (23 degrees each direction)
-- **Top Right motor (S2)**: 5 back-and-forth steps per cycle (23 degrees each direction)
+One **overall cycle** = one back-and-forth motion on every active motor, with both Arduinos finishing their motion at the same wall-clock time. The GUI cycle counter advances by one each time both Arduinos report `CYCLE:n` for the same `n`.
 
-All motors are synchronized so that one overall cycle (all motors completing their respective steps) takes exactly **1 second**. The Arduino firmware pads each cycle with a delay to maintain this timing.
+- **Lateral motor**: 1 back-and-forth per cycle, **23°** forward + 23° backward.
+- **Top Left motor (S1)**: 1 back-and-forth per cycle, **9°** forward + 9° backward.
+- **Top Right motor (S2)**: 1 back-and-forth per cycle, **9°** forward + 9° backward.
+
+Both firmwares share a `LEG_DURATION_MS` constant (default 100 ms) that controls the wall-time of each forward and backward leg. **Both `.ino` files must use the same value** so the two Arduinos reverse direction at the same instant. Default settings give a full overall cycle of ~200 ms (≈5 Hz).
+
+Pulse counts are derived from the driver's microstepping setting:
+
+| Motor | Driver pulses/rev | Pulses per leg (one direction) |
+|-------|-------------------|--------------------------------|
+| Top L / Top R | 6,400 (1/32 microstep) | 6400 × 9/360 = **160** (exact) |
+| Lateral       | 25,000               | 25000 × 23/360 = **1,597** (rounds 0.003°) |
+
+To keep wall-time identical across the two firmwares despite integer rounding in the per-pulse delay, each firmware adds a small `LEG_PAD_US` `delayMicroseconds()` at the end of every leg. The pad is 0 µs on the top side (math divides cleanly) and ~986 µs on the lateral side.
 
 ### Station Modes
 
