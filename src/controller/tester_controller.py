@@ -194,7 +194,26 @@ class TesterController:
         self._pause_t: Optional[float] = None
         self._paused_total_s: float = 0.0                                                                                                                                                                           
                                                                                                                                                                                                                     
-        self._last_message: str = "Sleeping (IDLE)."                                                                                                                                                                
+        self._last_message: str = "Sleeping (IDLE)."
+
+        # If the motor backend exposes connection state, surface a warning
+        # at startup when one or both Arduinos didn't connect. The app stays
+        # IDLE so the operator can plug in the missing board and try START
+        # — start_test() will refuse cleanly until both are available.
+        uno = getattr(self._motor, "_uno", None)
+        if uno is not None:
+            lat_ok = uno.lateral_connected() if hasattr(uno, "lateral_connected") else True
+            top_ok = uno.top_connected() if hasattr(uno, "top_connected") else True
+            missing: list[str] = []
+            if not lat_ok:
+                missing.append("Lateral")
+            if not top_ok:
+                missing.append("Top")
+            if missing:
+                self._last_message = (
+                    f"{' and '.join(missing)} Arduino not connected. "
+                    "Plug in and restart, or run with the simulator backend."
+                )                                                                                                                                                                
    
     # -------------------------                                                                                                                                                                                     
     # Public API for UI                                                                                                                                                                                           

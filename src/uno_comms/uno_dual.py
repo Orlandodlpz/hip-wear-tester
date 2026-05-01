@@ -2,9 +2,6 @@ import threading
 import time
 import serial
 
-@property
-def is_connected(self) -> bool:
-    return self._ser is not None and self._ser.is_open
 
 class UnoDual:
     def __init__(self, port: str, baudrate: int = 9600, timeout: float = 0.05):
@@ -15,13 +12,27 @@ class UnoDual:
         self._lock = threading.Lock()
 
     def connect(self) -> None:
+        """Open the serial port. If the port doesn't exist or is busy
+        (e.g. the top Arduino isn't plugged in), leave self._ser as None
+        and return without raising. The rest of the class already no-ops
+        or raises a clear error when _ser is None, so callers can keep
+        operating with one Arduino missing."""
         if self._ser is not None and self._ser.is_open:
             return
 
-        self._ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+        try:
+            self._ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+        except (serial.SerialException, OSError) as exc:
+            self._ser = None
+            print(f"[UnoDual] Top Arduino not connected on {self.port}: {exc}")
+            return
+
         time.sleep(2.0)  # Arduino resets on open
         self._ser.reset_input_buffer()
         self._ser.reset_output_buffer()
+
+    def is_connected(self) -> bool:
+        return self._ser is not None and self._ser.is_open
 
     def disconnect(self) -> None:
         if self._ser is not None and self._ser.is_open:
