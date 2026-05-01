@@ -179,8 +179,8 @@ class TesterController:
             # lateral_port="/dev/ttyACM0",                                                                                                                                                                          
             # top_port="/dev/ttyACM1",                                                                                                                                                                              
             # for testing with macbook, use these ports:                                                                                                                                                            
-            lateral_port="/dev/cu.usbmodem11401",
-            top_port="/dev/cu.usbmodem11301",
+            lateral_port="/dev/cu.usbmodem11301",
+            top_port="/dev/cu.usbmodem11401",
             baudrate=9600,
         )                                                                                                                                                                                                         
                                                                                                                                                                                                                       

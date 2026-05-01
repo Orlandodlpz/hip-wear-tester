@@ -50,7 +50,7 @@
   // ---------- Timing ----------
   // Each leg (forward or backward) takes this long. The lateral firmware uses the same
   // value so both Arduinos reverse at the same instant.
-  const unsigned long LEG_DURATION_MS = 100;
+  const unsigned long LEG_DURATION_MS = 200;
 
   // Per-pulse delay derived from leg duration. Total microseconds per pulse =
   //   LEG_DURATION_MS * 1000 / PULSES_PER_LEG. We split it into a HIGH width and a LOW gap.
@@ -129,6 +129,10 @@
     if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
 
     digitalWrite(TOP_LEFT_DIR, LOW);
+    for (long i = 0; i < PULSES_PER_LEG * 2; i++) pulseStep(TOP_LEFT_STEP);
+    if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
+    
+    digitalWrite(TOP_LEFT_DIR, HIGH);
     for (long i = 0; i < PULSES_PER_LEG; i++) pulseStep(TOP_LEFT_STEP);
     if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
   }
@@ -139,6 +143,10 @@
     if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
 
     digitalWrite(TOP_RIGHT_DIR, LOW);
+    for (long i = 0; i < PULSES_PER_LEG * 2; i++) pulseStep(TOP_RIGHT_STEP);
+    if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
+
+    digitalWrite(TOP_RIGHT_DIR, HIGH);
     for (long i = 0; i < PULSES_PER_LEG; i++) pulseStep(TOP_RIGHT_STEP);
     if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
   }
@@ -151,6 +159,11 @@
 
     digitalWrite(TOP_LEFT_DIR, LOW);
     digitalWrite(TOP_RIGHT_DIR, LOW);
+    for (long i = 0; i < PULSES_PER_LEG * 2; i++) pulseBoth();
+    if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
+
+    digitalWrite(TOP_LEFT_DIR, HIGH);
+    digitalWrite(TOP_RIGHT_DIR, HIGH);
     for (long i = 0; i < PULSES_PER_LEG; i++) pulseBoth();
     if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
   }
