@@ -5,7 +5,7 @@ from ..theme import PANEL, FG, MUTED, FONT_BIG, GREEN, BLUE, GRID
 
 class TempDisplayPanel(tk.LabelFrame):
     def __init__(self, parent: tk.Misc) -> None:
-        super().__init__(parent, text="Temperatures (Sim)", bg=PANEL, fg=FG, font=("DejaVu Sans", 11, "bold"))
+        super().__init__(parent, text="Temperatures", bg=PANEL, fg=FG, font=("DejaVu Sans", 11, "bold"))
 
         self._s1_hist = []
         self._s2_hist = []

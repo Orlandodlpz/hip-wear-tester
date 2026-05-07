@@ -3,11 +3,16 @@ from ...controller.tester_controller import RunState
 from ..theme import PANEL, FG, MUTED, FONT_MED, FONT_BIG, GREEN, BLUE, YELLOW, RED
 
 
-def fmt_hhmm(seconds: float) -> str:
-    s = int(seconds)
-    h = s // 3600
-    m = (s % 3600) // 60
-    return f"{h:02d}:{m:02d}"
+def fmt_elapsed(seconds: float) -> str:
+    """Format elapsed time as HH:MM:SS.mmm (with millisecond resolution)."""
+    if seconds < 0:
+        seconds = 0.0
+    total_ms = int(round(seconds * 1000.0))
+    ms  = total_ms % 1000
+    s   = (total_ms // 1000) % 60
+    m   = (total_ms // 60000) % 60
+    h   = total_ms // 3600000
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
 
 
 class StatusPanel(tk.LabelFrame):
@@ -19,7 +24,7 @@ class StatusPanel(tk.LabelFrame):
         rows = [
             ("Run State", "run_state"),
             ("Mode", "station_mode"),
-            ("Elapsed (HH:MM)", "elapsed_hhmm"),
+            ("Elapsed (HH:MM:SS.mmm)", "elapsed"),
             ("Cycles", "cycles"),
             ("Side Motor", "side_motor"),
             ("Top Motor (S1)", "top_motor_station1"),
@@ -51,7 +56,7 @@ class StatusPanel(tk.LabelFrame):
 
         self._vals["run_state"].configure(text=state, fg=color)
         self._vals["station_mode"].configure(text=(status.station_mode.value if status.station_mode else "—"), fg=BLUE)
-        self._vals["elapsed_hhmm"].configure(text=fmt_hhmm(status.elapsed_s), fg=FG)
+        self._vals["elapsed"].configure(text=fmt_elapsed(status.elapsed_s), fg=FG)
 
         if status.run_state.value in (RunState.RUNNING.value, RunState.PAUSED.value):
             self._vals["cycles"].configure(text=str(status.completed_cycles), fg=FG)

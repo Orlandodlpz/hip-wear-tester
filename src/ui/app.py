@@ -7,7 +7,7 @@ from .theme import BG
 
 def run() -> None:
     root = tk.Tk()
-    root.title("Hip Wear Tester Dashboard (Sim Mode)")
+    root.title("Hip Wear Tester Dashboard")
     root.configure(bg=BG)
     root.attributes("-fullscreen", True)
     root.bind("<Escape>", lambda e: root.attributes("-fullscreen", False))

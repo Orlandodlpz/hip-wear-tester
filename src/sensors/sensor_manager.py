@@ -3,20 +3,28 @@ from .sensor import DS18B20
 
 
 class SensorManager:
-    """Manages two DS18B20 sensors — one per test station.
+    """Manages DS18B20 sensors for the two test stations.
 
-    On construction, provide the 1-Wire addresses for each station.
-    If an address is None the reading for that station will always be 0.0.
+    On construction, provide the 1-Wire address(es) for each station.
 
-    The update() method has the same signature as SimSensorManager so
-    the dashboard can swap between them without changes.
+    SHARED-SENSOR MODE:
+        If only s1_address is provided (s2_address=None), the single sensor's
+        reading is mirrored to BOTH stations. This is the current rig setup —
+        we have one working DS18B20 and the second station's reading uses
+        the same value. Once a second sensor is added, pass its address as
+        s2_address and each station will get its own reading.
+
+    The update() method has the same signature as SimSensorManager so the
+    dashboard can swap between them without changes.
 
     Usage:
         # Find connected sensors first:
         #   from .sensor import DS18B20
-        #   print(DS18B20.discover())   # e.g. ['28-0516a41a81ff', '28-0516a41b92cc']
+        #   print(DS18B20.discover())   # e.g. ['28-000000b9f30a']
         #
-        # Then pass the addresses:
+        # Single-sensor (mirrored) configuration:
+        mgr = SensorManager(s1_address="28-000000b9f30a")
+        # Two-sensor configuration:
         mgr = SensorManager(s1_address="28-xxxx", s2_address="28-yyyy")
     """
 
@@ -28,11 +36,15 @@ class SensorManager:
         self._sensor_s1 = DS18B20(s1_address) if s1_address else None
         self._sensor_s2 = DS18B20(s2_address) if s2_address else None
 
-    def update(self, *, running: bool, active_s1: bool, active_s2: bool) -> dict:
-        """Read both sensors and return {"S1": float, "S2": float}.
+        # If only one sensor is configured, mirror its value to the other
+        # station. This is the supported single-sensor mode.
+        self._mirror = (self._sensor_s1 is not None) and (self._sensor_s2 is None)
 
-        Returns 0.0 for a station if its sensor is not configured or if
-        the read fails.
+    def update(self, *, running: bool, active_s1: bool, active_s2: bool) -> dict:
+        """Read sensor(s) and return {"S1": float, "S2": float}.
+
+        Returns 0.0 for a station if the sensor read fails or no sensor is
+        configured (and mirroring isn't active for that station).
         """
         t1 = 0.0
         t2 = 0.0
@@ -46,5 +58,8 @@ class SensorManager:
             reading = self._sensor_s2.read_celsius()
             if reading is not None:
                 t2 = reading
+        elif self._mirror:
+            # Single-sensor rig: station 2's value mirrors station 1's.
+            t2 = t1
 
         return {"S1": t1, "S2": t2}

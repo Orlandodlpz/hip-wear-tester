@@ -43,7 +43,7 @@ class TesterStatus:
 
 
 class MotorIO:
-    def start_test(self, mode: StationMode, cycles: int) -> None:
+    def start_test(self, mode: StationMode, cycles: int, *, is_resume: bool = False) -> None:
         raise NotImplementedError
 
     def stop_all(self) -> None:
@@ -61,18 +61,18 @@ class SimMotorIO(MotorIO):
         self._running = False
         self.completed_cycles = 0                                                                                                                                                                                     
                                                                                                                                                                                                                       
-    def start_test(self, mode: StationMode, cycles: int) -> None:                                                                                                                                                   
+    def start_test(self, mode: StationMode, cycles: int, *, is_resume: bool = False) -> None:
         self.side = MotorState.RUN
-        if mode == StationMode.S1:                                                                                                                                                                                  
-            self.top_s1 = MotorState.RUN                                                                                                                                                                          
-            self.top_s2 = MotorState.SLEEP                                                                                                                                                                          
+        if mode == StationMode.S1:
+            self.top_s1 = MotorState.RUN
+            self.top_s2 = MotorState.SLEEP
         elif mode == StationMode.S2:
-            self.top_s1 = MotorState.SLEEP                                                                                                                                                                          
-            self.top_s2 = MotorState.RUN                                                                                                                                                                            
+            self.top_s1 = MotorState.SLEEP
+            self.top_s2 = MotorState.RUN
         elif mode == StationMode.BOTH:
-            self.top_s1 = MotorState.RUN                                                                                                                                                                            
-            self.top_s2 = MotorState.RUN                                                                                                                                                                          
-        self._running = True                                                                                                                                                                                        
+            self.top_s1 = MotorState.RUN
+            self.top_s2 = MotorState.RUN
+        self._running = True
    
     def stop_all(self) -> None:                                                                                                                                                                                     
         self.side = MotorState.OFF                                                                                                                                                                                
@@ -104,20 +104,50 @@ class ArduinoMotorIO(MotorIO):
         self._top_done = False
         self.completed_cycles = 0
 
-        # Per-Arduino cycle progress. The overall counter (completed_cycles)
-        # advances only when BOTH Arduinos have reported the same cycle number
-        # (i.e. both finished the current overall cycle). For S1/S2 modes the
-        # top Arduino still reports CYCLE:n at the same rate as the lateral,
-        # so the gating works the same way in all three modes.
+        # Per-Arduino cycle progress. The public completed_cycles counter is
+        # driven by the LATERAL Arduino's CYCLE:n messages (the top Arduino's
+        # count is recorded for diagnostics but does not advance the GUI
+        # counter). After a pause/resume, the firmware restarts its CYCLE
+        # counter from 1, so we add _resume_offset (set to the pre-pause
+        # cycle count) to make the public counter continuous across resumes.
         self._lat_last_cycle = 0
         self._top_last_cycle = 0
+        self._resume_offset = 0
 
-    def start_test(self, mode: StationMode, cycles: int) -> None:
+    def start_test(self, mode: StationMode, cycles: int, *, is_resume: bool = False) -> None:
+        """Start a fresh run, OR resume a paused one.
+
+        On a fresh start (is_resume=False, the default), all counters and
+        state are reset to zero. On a resume (is_resume=True), the public
+        counter and resume offset are PRESERVED — resume_test() in the
+        controller will have set them already, and start_test must not
+        clobber them.
+        """
+        # Drain any stale CYCLE/DONE/STOPPED lines that the previous run
+        # might have left in the serial input buffer. If we don't drain, those
+        # stale messages will be parsed by is_done() AFTER we send the new
+        # START, and they can corrupt the fresh counter (e.g. stale CYCLE:42
+        # from a prior run that was Stopped at 50 would set completed_cycles
+        # to 42 before any real new CYCLE:1 arrives).
+        try:
+            self._uno.poll_lines()  # discard
+        except Exception:
+            pass
+
         self._lat_done = False
         self._top_done = False
-        self.completed_cycles = 0
-        self._lat_last_cycle = 0
-        self._top_last_cycle = 0
+
+        if not is_resume:
+            self.completed_cycles = 0
+            self._lat_last_cycle = 0
+            self._top_last_cycle = 0
+            self._resume_offset = 0
+        else:
+            # Resume: the firmware will count its NEW run starting from
+            # CYCLE:1, so reset the per-Arduino raw counters. completed_cycles
+            # and _resume_offset stay as resume_test() set them.
+            self._lat_last_cycle = 0
+            self._top_last_cycle = 0
 
         self.side = MotorState.RUN
         if mode == StationMode.S1:
@@ -143,8 +173,12 @@ class ArduinoMotorIO(MotorIO):
     def is_done(self) -> bool:
         messages = self._uno.poll_lines()
         for source, line in messages:
-            # Track per-Arduino cycle progress. The overall counter only
-            # advances when BOTH Arduinos have crossed the same cycle number.
+            # Cycle counter is driven by the LATERAL Arduino only. The top
+            # Arduino's CYCLE:n messages are still recorded for diagnostics
+            # but they do NOT advance completed_cycles — the lateral runs
+            # slightly slower per cycle (longer pulses, more steps) so its
+            # count is the right ceiling for "how many overall cycles have
+            # actually completed end-to-end."
             if line.startswith("CYCLE:"):
                 try:
                     n = int(line.split(":")[1])
@@ -154,12 +188,18 @@ class ArduinoMotorIO(MotorIO):
                 if n is not None:
                     if source == "LAT":
                         self._lat_last_cycle = n
+                        # Public counter = lateral's CYCLE:n + resume_offset.
+                        # On a fresh start, _resume_offset is 0 so the GUI
+                        # shows 1, 2, 3, ... as expected. After a resume,
+                        # _resume_offset is set to the cycle count at pause
+                        # so the counter continues from where it left off
+                        # (e.g. paused at 387, resume sees CYCLE:1 from the
+                        # firmware → public counter shows 388).
+                        candidate = n + self._resume_offset
+                        if candidate > self.completed_cycles:
+                            self.completed_cycles = candidate
                     elif source == "TOP":
                         self._top_last_cycle = n
-
-                    overall = min(self._lat_last_cycle, self._top_last_cycle)
-                    if overall > self.completed_cycles:
-                        self.completed_cycles = overall
 
             if source == "LAT" and line.startswith("DONE:LAT"):
                 self._lat_done = True
@@ -196,6 +236,11 @@ class TesterController:
                                                                                                                                                                                                                     
         self._last_message: str = "Sleeping (IDLE)."
 
+        # Snapshot of completed_cycles taken at pause_test() time. resume_test()
+        # uses it to (a) tell the Arduinos to only run the REMAINING cycles, and
+        # (b) restore the GUI counter so it picks up where it left off.
+        self._cycles_at_pause: int = 0
+
         # If the motor backend exposes connection state, surface a warning
         # at startup when one or both Arduinos didn't connect. The app stays
         # IDLE so the operator can plug in the missing board and try START
@@ -231,8 +276,8 @@ class TesterController:
             raise RuntimeError("Cannot change cycles while running/paused.")                                                                                                                                        
         if cycles < 1:                                                                                                                                                                                              
             raise ValueError("Cycles must be >= 1.")                                                                                                                                                              
-        if cycles > 10000:
-            raise ValueError("Cycles must be <= 10000 (Arduino limit).")
+        if cycles > 5000000:
+            raise ValueError("Cycles must be <= 5,000,000 (Arduino MAX_CYCLES limit).")
         self._target_cycles = cycles                                                                                                                                                                                
         self._last_message = f"Cycles set to {cycles}."                                                                                                                                                             
    
@@ -268,40 +313,96 @@ class TesterController:
             self._motor.stop_all()
                                                                                                                                                                                                                       
     def pause_test(self) -> None:
-        if self._run_state != RunState.RUNNING:                                                                                                                                                                     
-            raise RuntimeError("Can only pause while RUNNING.")                                                                                                                                                   
-        self._pause_t = time.time()                                                                                                                                                                                 
+        if self._run_state != RunState.RUNNING:
+            raise RuntimeError("Can only pause while RUNNING.")
+        self._pause_t = time.time()
+
+        # Snapshot the cycle count BEFORE stopping the motors. We need this so
+        # resume_test() can ask the Arduinos for the remaining cycles only and
+        # restore the GUI counter on top of the snapshot.
+        self._cycles_at_pause = getattr(self._motor, "completed_cycles", 0)
+
         self._motor.stop_all()
-        self._run_state = RunState.PAUSED                                                                                                                                                                           
-        self._last_message = "Paused (motors sleeping)."                                                                                                                                                          
-                                                                                                                                                                                                                      
+        self._run_state = RunState.PAUSED
+        self._last_message = (
+            f"Paused at cycle {self._cycles_at_pause} of {self._target_cycles}."
+        )
+
     def resume_test(self) -> None:
-        if self._run_state != RunState.PAUSED:                                                                                                                                                                      
-            raise RuntimeError("Can only resume while PAUSED.")                                                                                                                                                     
+        if self._run_state != RunState.PAUSED:
+            raise RuntimeError("Can only resume while PAUSED.")
         if self._station_mode is None:
-            raise RuntimeError("No station mode set.")                                                                                                                                                              
-                                                                                                                                                                                                                      
+            raise RuntimeError("No station mode set.")
+
         assert self._pause_t is not None
-        self._paused_total_s += time.time() - self._pause_t                                                                                                                                                         
-        self._pause_t = None                                                                                                                                                                                      
+        self._paused_total_s += time.time() - self._pause_t
+        self._pause_t = None
 
-        self._motor.start_test(self._station_mode, self._target_cycles)                                                                                                                                             
-   
-        self._run_state = RunState.RUNNING                                                                                                                                                                          
-        self._last_message = "Resumed."                                                                                                                                                                           
+        # Compute remaining cycles. If we already finished the target before
+        # pause (edge case), there's nothing to do.
+        remaining = max(0, self._target_cycles - self._cycles_at_pause)
+        if remaining == 0:
+            self._run_state = RunState.IDLE
+            self._last_message = "Already complete; nothing to resume."
+            return
 
-        self._worker = threading.Thread(target=self._monitor_test, daemon=True)                                                                                                                                     
+        # IMPORTANT: prime completed_cycles and _resume_offset BEFORE calling
+        # start_test(is_resume=True). is_resume=True tells the motor backend
+        # NOT to clobber these fields. After this, when the Arduinos send
+        # CYCLE:1 (their fresh post-resume count), is_done() will compute
+        # candidate = 1 + _cycles_at_pause = _cycles_at_pause + 1 and the
+        # public counter continues from where it left off.
+        if hasattr(self._motor, "completed_cycles"):
+            self._motor.completed_cycles = self._cycles_at_pause
+        if hasattr(self._motor, "_resume_offset"):
+            self._motor._resume_offset = self._cycles_at_pause
+
+        self._motor.start_test(self._station_mode, remaining, is_resume=True)
+
+        self._run_state = RunState.RUNNING
+        self._last_message = (
+            f"Resumed from cycle {self._cycles_at_pause}; "
+            f"{remaining} cycles remaining."
+        )
+
+        self._worker = threading.Thread(target=self._monitor_test, daemon=True)
         self._worker.start()
-                                                                                                                                                                                                                      
-    def stop_test(self) -> None:                                                                                                                                                                                  
+
+    def stop_test(self) -> None:
         if self._run_state == RunState.IDLE:
-            return                                                                                                                                                                                                  
+            # Already idle, but reset the counter anyway so the GUI shows 0
+            # cleanly when the operator looks at it before the next start.
+            if hasattr(self._motor, "completed_cycles"):
+                self._motor.completed_cycles = 0
+            if hasattr(self._motor, "_lat_last_cycle"):
+                self._motor._lat_last_cycle = 0
+            if hasattr(self._motor, "_top_last_cycle"):
+                self._motor._top_last_cycle = 0
+            if hasattr(self._motor, "_resume_offset"):
+                self._motor._resume_offset = 0
+            self._cycles_at_pause = 0
+            return
         self._motor.stop_all()
-        self._run_state = RunState.IDLE                                                                                                                                                                             
-        self._start_t = None                                                                                                                                                                                      
-        self._pause_t = None                                                                                                                                                                                        
+        self._run_state = RunState.IDLE
+        self._start_t = None
+        self._pause_t = None
         self._paused_total_s = 0.0
-        self._last_message = "Stopped. Sleeping (IDLE)."                                                                                                                                                            
+        self._cycles_at_pause = 0
+
+        # Reset the cycle counter immediately so the GUI shows 0 right after
+        # Stop, not the count from the previous run. (start_test() also resets
+        # this when a new run begins, but doing it here gives clean visual
+        # feedback the moment the user hits Stop.)
+        if hasattr(self._motor, "completed_cycles"):
+            self._motor.completed_cycles = 0
+        if hasattr(self._motor, "_lat_last_cycle"):
+            self._motor._lat_last_cycle = 0
+        if hasattr(self._motor, "_top_last_cycle"):
+            self._motor._top_last_cycle = 0
+        if hasattr(self._motor, "_resume_offset"):
+            self._motor._resume_offset = 0
+
+        self._last_message = "Stopped. Sleeping (IDLE)."
                                                                                                                                                                                                                     
     def estop(self) -> None:                                                                                                                                                                                        
         self._motor.stop_all()

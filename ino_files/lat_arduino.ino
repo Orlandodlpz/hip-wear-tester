@@ -1,27 +1,26 @@
 // Lateral Arduino firmware - hip wear tester
 // Drives the single lateral NEMA 23 stepper motor via an external driver.
 //
-// CYCLE DEFINITION (as of 2026-04-27):
-//   One lateral cycle = 11.5 deg forward + 11.5 deg backward (one back-and-forth).
-//   The motor starts each test at the MIDDLE of its 23 deg sweep, so each leg
-//   travels half the total range (+/-11.5 deg around home). Total angular
-//   travel per cycle is still 23 deg, just centered instead of edge-to-edge.
-//   The firmware itself has no concept of "home" — it just emits pulses; the
-//   rig must be physically positioned at the middle of the sweep before START.
-//   No inner-rep loop. The cycle counter increments after each back-and-forth.
+// CYCLE DEFINITION (as of 2026-05-05):
+//   One lateral cycle is THREE legs centered around the rig's home position:
+//     leg 1: 23.4 deg forward (208 pulses)
+//     leg 2: 46.8 deg backward (416 pulses, returns through home to opposite side)
+//     leg 3: 23.4 deg forward (208 pulses, returns to home)
+//   Net pulses balance, so the motor returns to its physical home if no
+//   steps are skipped. The rig must be physically positioned at the middle
+//   of the sweep before START.
+//   Cycle counter increments after each three-leg motion.
 //
 // SYNC WITH TOP ARDUINO:
-//   Each leg (forward, backward) takes LEG_DURATION_MS milliseconds. The top
-//   firmware uses the same value, so both Arduinos finish their forward leg
-//   at the same instant and start their backward leg together.
-//   Default: 100 ms per leg -> 200 ms per cycle -> 5 Hz cycle rate.
+//   Each outer leg targets LEG_DURATION_MS ms wall-time. The middle leg
+//   targets 2 * LEG_DURATION_MS. Both Arduinos use the same LEG_DURATION_MS
+//   so they reverse direction at the same instant. Each leg pads with
+//   delayMicroseconds() at the end to absorb any timing slop.
 //
 // DRIVER MICROSTEPPING:
-//   The lateral driver is set to 25,000 pulses per revolution (a "pulses/rev"
-//   labeled DM-style driver, equivalent to 1/125 microstepping on a 1.8 deg
-//   step motor).
-//   11.5 deg = 25000 * 11.5 / 360 = 798.6 pulses -> rounded to 799 (overshoots
-//   target by 0.006 deg, well below mechanical play in the rig).
+//   Lateral driver = 3,200 pulses per revolution (1/16 microstep on a
+//   1.8 deg motor).
+//   23.4 deg = 3200 * 23.4 / 360 = 208 pulses (exact integer, no rounding).
 //
 // SERIAL PROTOCOL (unchanged - Python side does not need updates):
 //   Commands:
@@ -34,7 +33,7 @@
 //     STOPPED:LAT        STOP acknowledged
 //     ERR:<reason>
 
-  // ---------- Pin assignments (unchanged) ----------
+  // ---------- Pin assignments ----------
   const int LAT_DIR  = 2;
   const int LAT_STEP = 3;
 
@@ -42,43 +41,35 @@
   const int LAT_ENA  = 4;
 
   // ---------- Cycle geometry ----------
-  // Change these constants if the angle, driver pulses/rev, or timing changes.
-  // The motor starts each test at the middle of the 23 deg sweep, so each leg
-  // is half the full range (23 deg forward, 23 deg back).
-  const float DEG_PER_LEG     = 23;     // degrees per direction (11.5 fwd, 11.5 back)
-  const long  PULSES_PER_REV  = 25000;     // driver "pulses/rev" DIP setting
-  // Pulses per direction = pulses_per_rev * (deg / 360)
-  // For 11.5 deg at 25000 P/R: 25000 * 11.5/360 = 798.6 -> 799 pulses
+  // Outer leg = DEG_PER_LEG. Middle leg = 2 * DEG_PER_LEG.
+  const float DEG_PER_LEG     = 23.4f;
+  const long  PULSES_PER_REV  = 3200;        // 1/16 microstep on a 1.8 deg motor
+  // 3200 * 23.4/360 = 208 pulses per outer leg (exact integer)
   const long PULSES_PER_LEG = (long)(PULSES_PER_REV * DEG_PER_LEG / 360.0f);
 
   // ---------- Timing ----------
-  // Each leg (forward or backward) takes this long. MUST match top_arduino.ino
-  // so both Arduinos reverse at the same instant. If you change this, change
-  // it in BOTH .ino files.
-  const unsigned long LEG_DURATION_MS = 200;
+  // Each OUTER leg targets this wall-time. The middle leg targets 2x.
+  // MUST match top_arduino.ino so both Arduinos reverse at the same instant.
+  // 250 ms outer + 500 ms middle + 250 ms outer = 1000 ms = 1 Hz cycle.
+  const unsigned long LEG_DURATION_MS = 250;
 
-  // Per-pulse delay derived from leg duration. Total microseconds per pulse =
-  //   LEG_DURATION_MS * 1000 / PULSES_PER_LEG. We split it into a HIGH width
-  //   and a LOW gap.
-  // For 100 ms / 799 pulses = 125.15 us/pulse total -> 15 us HIGH + 110 us LOW.
-  // (15 us HIGH is well above the driver's ~5 us minimum; 110 us LOW gives the
-  // driver plenty of time to clock the next step.)
+  // ---------- Per-pulse delay derived from leg duration ----------
+  // Total microseconds per pulse = LEG_DURATION_MS * 1000 / PULSES_PER_LEG.
+  // For 250 ms / 208 pulses = 1201.92 us/pulse total -> 25 us HIGH + 1176 us LOW.
+  // (25 us HIGH is well above the driver's minimum and gives some tolerance
+  //  for high-microstep drivers that may want >15 us.)
   const unsigned long TOTAL_US_PER_PULSE = ((unsigned long)LEG_DURATION_MS * 1000UL) / PULSES_PER_LEG;
-  const int PULSE_WIDTH_US = 15;  // step pulse HIGH width (driver requires >= ~5 us)
+  const int PULSE_WIDTH_US = 25;
   const int STEP_DELAY_US  = (int)(TOTAL_US_PER_PULSE - PULSE_WIDTH_US);
 
-  // Integer-rounding compensation. PULSES_PER_LEG * (PULSE_WIDTH_US +
-  // STEP_DELAY_US) is slightly less than LEG_DURATION_MS * 1000 because the
-  // total-us-per-pulse calculation rounds down. We pad each leg with the
-  // shortfall so the lateral cycle wall-time matches the top firmware exactly.
-  // For 11.5 deg / 25000 P/R: 799 * 125 us = 99875 us, pad = 125 us per leg.
-  const long ACTUAL_US_PER_LEG  = PULSES_PER_LEG * (long)(PULSE_WIDTH_US + STEP_DELAY_US);
-  const long TARGET_US_PER_LEG  = (long)LEG_DURATION_MS * 1000L;
-  const long LEG_PAD_US         = TARGET_US_PER_LEG - ACTUAL_US_PER_LEG;
+  // ---------- Direction setup time ----------
+  // The driver datasheet wants ~5 us between a DIR change and the next STEP
+  // pulse. Without this, the first pulse in a new direction can be
+  // misinterpreted (driver hasn't latched the new DIR yet) and the motor
+  // walks one step per cycle in one direction. 10 us is comfortable.
+  const int DIR_SETUP_US = 10;
 
   // ---------- Run state ----------
-  // Match top_arduino.ino so a START:<cycles> with the same N is accepted on
-  // both sides.
   const unsigned long MAX_CYCLES = 5000000;
 
   String command = "";
@@ -103,31 +94,27 @@
     if (USE_ENA) digitalWrite(LAT_ENA, HIGH);
   }
 
-  // ---------- One cycle = one back-and-forth ----------
-  // Forward leg (PULSES_PER_LEG pulses) -> reverse direction -> backward leg.
+  // ---------- Pad a leg's wall-time up to target ----------
+  // Outer target = LEG_DURATION_MS * 1000 us. Middle target = 2x.
+  // Use micros() to absorb integer-rounding slop in TOTAL_US_PER_PULSE.
+  void padToTarget(unsigned long start_us, unsigned long target_us) {
+    unsigned long elapsed = micros() - start_us;
+    if (elapsed < target_us) {
+      delayMicroseconds((unsigned int)(target_us - elapsed));
+    }
+  }
+
+  // ---------- One cycle = three legs (centered sweep) ----------
   void runOneCycle() {
-    // Forward 11.5 degrees (half of the 23 deg sweep, starting from middle)
-    digitalWrite(LAT_DIR, HIGH);
-    for (long i = 0; i < PULSES_PER_LEG; i++) {
-      pulseStep(LAT_STEP);
-    }
-    // Pad the forward leg up to LEG_DURATION_MS so the reversal happens at
-    // the same wall-clock time as the top Arduino's reversal.
-    if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
+    const unsigned long OUTER_TARGET_US  = (unsigned long)LEG_DURATION_MS * 1000UL;
+    const unsigned long MIDDLE_TARGET_US = OUTER_TARGET_US * 2UL;
 
-    // Backward 11.5 degrees (back through middle to the opposite extreme)
-    digitalWrite(LAT_DIR, LOW);
-    for (long i = 0; i < PULSES_PER_LEG * 2; i++) {
-      pulseStep(LAT_STEP);
-    }
-
-    digitalWrite(LAT_DIR, HIGH);
-    for (long i = 0; i < PULSES_PER_LEG; i++) {
-      pulseStep(LAT_STEP);
-    }
-    // Pad the backward leg likewise so cycle completion lands at the same
-    // wall-clock time as the top Arduino's cycle completion.
-    if (LEG_PAD_US > 0) delayMicroseconds((unsigned int)LEG_PAD_US);
+    moveSteps(208, LOW);
+    delay(0);
+    moveSteps(416, HIGH);
+    delay(0);
+    moveSteps(208, LOW);
+    delay(0);
 
     currentCycle++;
     Serial.print("CYCLE:");
@@ -137,6 +124,18 @@
       isRunning = false;
       disableMotor();
       Serial.println("DONE:LAT");
+    }
+  }
+
+  void moveSteps(int steps, bool dir){
+    digitalWrite(LAT_DIR, dir);
+    delay(18);
+
+    for (int i = 0; i < steps; i++){
+      digitalWrite(LAT_STEP, LOW);
+      delayMicroseconds(580);
+      digitalWrite(LAT_STEP, HIGH);
+      delayMicroseconds(580);
     }
   }
 
