@@ -105,11 +105,7 @@ class ArduinoMotorIO(MotorIO):
         self.completed_cycles = 0
 
         # Per-Arduino cycle progress. The public completed_cycles counter is
-        # driven by the LATERAL Arduino's CYCLE:n messages (the top Arduino's
-        # count is recorded for diagnostics but does not advance the GUI
-        # counter). After a pause/resume, the firmware restarts its CYCLE
-        # counter from 1, so we add _resume_offset (set to the pre-pause
-        # cycle count) to make the public counter continuous across resumes.
+        # driven by the LATERAL Arduino's CYCLE:n messages
         self._lat_last_cycle = 0
         self._top_last_cycle = 0
         self._resume_offset = 0

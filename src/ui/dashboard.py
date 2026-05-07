@@ -11,7 +11,7 @@ from ..data.logger import logger
 # wired; the manager mirrors its reading to both stations until a second
 # sensor is added (then pass its address as s2_address below).
 DS18B20_S1_ADDRESS = "28-000000b9f30a"
-DS18B20_S2_ADDRESS = None  # set when the second sensor comes online
+DS18B20_S2_ADDRESS = "28-3ce1d4435060"  # set when the second sensor comes online
 
 from .panels.station_select import StationSelectPanel
 from .panels.status import StatusPanel
