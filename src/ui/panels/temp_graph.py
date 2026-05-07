@@ -1,8 +1,9 @@
 import tkinter as tk
+from collections import deque
 from math import ceil
 
 from ...controller.tester_controller import StationMode, RunState
-from ..theme import PANEL, FG, GRID, AXIS, GREEN, BLUE, MUTED
+from ..theme import PANEL, FG, GRID, AXIS, GREEN, BLUE, MUTED, GRAPH_MAX_POINTS
 
 
 def fmt_hhmm(seconds: float) -> str:
@@ -18,9 +19,13 @@ class TempGraphPanel(tk.LabelFrame):
         self.canvas = tk.Canvas(self, bg="#000000", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Store ALL points for the run (x=elapsed_s)
-        self.s1_points: list[tuple[float, float]] = []
-        self.s2_points: list[tuple[float, float]] = []
+        # Bounded ring buffers — when full, the oldest point is dropped on
+        # append. The full-resolution data is in the CSV log; the graph only
+        # needs to show recent history. This bounds memory regardless of run
+        # length (a 5,000,000-cycle run at 1 Hz would have OOMed an unbounded
+        # list on a 2GB Pi).
+        self.s1_points: deque = deque(maxlen=GRAPH_MAX_POINTS)
+        self.s2_points: deque = deque(maxlen=GRAPH_MAX_POINTS)
 
         self._last_run_state = RunState.IDLE
         self.bind("<Configure>", lambda e: self._redraw())
@@ -120,16 +125,21 @@ class TempGraphPanel(tk.LabelFrame):
         c.create_text(lx + 50, ly + 30, text="Station 2", fill=FG, anchor="w")
 
     def _draw_series(self, pts, x0, y0, x1, y1, max_x, y_min, y_max, color, dash):
-        if len(pts) < 2:
+        n = len(pts)
+        if n < 2:
             return
 
-        # Downsample to avoid drawing thousands of points every refresh
+        # Downsample to cap the number of canvas segments. The deque is bounded
+        # at GRAPH_MAX_POINTS so this usually doesn't reduce; it kicks in if
+        # the cap is raised. Snapshot to a list once — deque random-access is
+        # O(n), but list snapshot is O(n) once and then O(1) per index.
+        pts_list = list(pts)
         max_draw = 800
-        step = max(1, len(pts) // max_draw)
-        sample = pts[::step]
+        step = max(1, n // max_draw)
 
         coords = []
-        for t, val in sample:
+        for i in range(0, n, step):
+            t, val = pts_list[i]
             x = self._map_x(t, x0, x1, max_x)
             y = self._map_y(val, y0, y1, y_min, y_max)
             coords.extend([x, y])

@@ -16,5 +16,6 @@ FONT_BIG = ("DejaVu Sans", 16, "bold")
 FONT_MED = ("DejaVu Sans", 12)
 FONT_SMALL = ("DejaVu Sans", 10)
 
-REFRESH_MS = 200          # UI refresh
+REFRESH_MS = 500          # UI refresh (Pi 4 2GB: 500 ms balances responsiveness and CPU)
 LOG_EVERY_S = 1.0         # log rate (1 Hz = good for multi-hour runs)
+GRAPH_MAX_POINTS = 600    # cap graph history per series (10 min at 1 Hz log rate)
