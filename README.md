@@ -196,18 +196,28 @@ Wire the DS18B20 data line to GPIO 4 (physical pin 7) with a 4.7 kΩ pull-up res
 ls /sys/bus/w1/devices/
 ```
 
-**6. Auto-launch the GUI on boot (optional)**
+**6. Desktop shortcut + auto-launch on boot (recommended)**
 
-If the kiosk should start automatically on the touchscreen, add a systemd user service or an autostart entry. A minimal autostart approach using LXDE:
+The project ships with an installer that creates both a desktop icon (for manual relaunch) and an autostart entry (for boot-time launch). Run it once after cloning:
 
 ```bash
-mkdir -p ~/.config/autostart
-cat > ~/.config/autostart/hip-wear-tester.desktop <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Hip Wear Tester
-Exec=/home/pi/hip-wear-tester/.venv/bin/python /home/pi/hip-wear-tester/main.py
-EOF
+bash ~/hip-wear-tester/scripts/install_shortcut.sh
+```
+
+This will:
+
+- Make `scripts/launch.sh` executable.
+- Drop a "Hip Wear Tester" icon onto `~/Desktop/` — double-click to launch.
+- Add `~/.config/autostart/hip-wear-tester.desktop` so the GUI starts automatically on every boot.
+- Mark the desktop icon as trusted so LXDE doesn't prompt before running it.
+
+App logs are written to `~/.hip-wear-tester/app.log` for post-mortem debugging.
+
+To uninstall:
+
+```bash
+rm ~/Desktop/hip-wear-tester.desktop
+rm ~/.config/autostart/hip-wear-tester.desktop
 ```
 
 ### Running the Application
