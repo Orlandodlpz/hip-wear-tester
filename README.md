@@ -225,8 +225,21 @@ rm ~/.config/autostart/hip-wear-tester.desktop
 From the project root, with the venv activated:
 
 ```bash
-python main.py
+python main.py                # launches in a regular window (default)
+python main.py --fullscreen   # launches fullscreen
 ```
+
+You can also set the environment variable:
+
+```bash
+HIP_WEAR_FULLSCREEN=1 python main.py
+```
+
+The Pi's `scripts/launch.sh` already exports `HIP_WEAR_FULLSCREEN=1`, so the kiosk launches fullscreen automatically.
+
+**Keyboard shortcuts inside the app:**
+- `F11` — toggle fullscreen
+- `Escape` — exit fullscreen back to a window (does NOT close the app)
 
 ### Serial Ports
 

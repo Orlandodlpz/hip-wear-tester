@@ -40,6 +40,12 @@ fi
     echo "===================================================================="
 } >> "$LOG_FILE"
 
+# Launch in fullscreen by default on the Pi (touchscreen kiosk). The app
+# also accepts the env var HIP_WEAR_FULLSCREEN=1 or the --fullscreen CLI
+# flag. F11 inside the app toggles fullscreen on the fly; Escape exits
+# fullscreen back to a window.
+export HIP_WEAR_FULLSCREEN=1
+
 # Run the app, capturing both stdout and stderr to the log. exec so this
 # shell doesn't stick around as a parent process.
 exec python3 main.py >> "$LOG_FILE" 2>&1
