@@ -49,18 +49,19 @@ class logger:
             "elapsed_time",
             "station_mode",
             "test_state",
-            "temp_station1_celsius",
-            "temp_station2_celsius",
-            "lateral_motor_state",
-            "top_motor_station1_state",
-            "top_motor_station2_state",
+            "cycle_count",
+            "s1_temp",
+            "s2_temp",
+            "lateral_state",
+            "top1_state",
+            "top2_state",
             "log_message",
         ])
         self._fp.flush()
         return self.run_dir
 
     def log(self, *, elapsed_s: float, elapsed_hhmmss: str, mode: str, run_state: str,
-            t1: float, t2: float, side: str, top1: str, top2: str, message: str) -> None:
+            cycles: int, t1: float, t2: float, side: str, top1: str, top2: str, message: str) -> None:
         if not self._writer or not self._fp:
             return
 
@@ -77,6 +78,7 @@ class logger:
             elapsed_hhmmss,
             mode,
             run_state,
+            cycles,
             f"{t1:.3f}",
             f"{t2:.3f}",
             side,
@@ -90,7 +92,7 @@ class logger:
         """Close CSV and generate graph.png."""
         self.ended_iso = datetime.now().isoformat(timespec="seconds")
 
-        # write a final marker row (optional but useful)
+        # write a final marker row
         if self._writer and self._fp:
             self._writer.writerow([
                 self.ended_iso,
@@ -98,6 +100,7 @@ class logger:
                 "",
                 self.mode,
                 f"END:{end_state}",
+                "",  # cycle_count
                 "",
                 "",
                 "",

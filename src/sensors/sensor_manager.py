@@ -4,48 +4,10 @@ import time
 from .sensor import DS18B20
 
 
-# How often the background thread re-reads each DS18B20. The sensor's
-# kernel-side conversion takes ~750 ms internally regardless of how often
-# we poll, so reading more than once per second wastes CPU and (more
-# importantly) blocks the calling thread for ~750 ms each time. Temperatures
-# in a wear-test rig don't change fast enough for sub-second resolution to
-# matter — the previous unthreaded code blocked the GUI for ~750 ms every
-# 200 ms refresh.
 SENSOR_POLL_INTERVAL_S = 2.0
 
 
 class SensorManager:
-    """Manages DS18B20 sensors for the two test stations.
-
-    On construction, provide the 1-Wire address(es) for each station.
-
-    SHARED-SENSOR MODE:
-        If only s1_address is provided (s2_address=None), the single sensor's
-        reading is mirrored to BOTH stations. This is the current rig setup —
-        we have one working DS18B20 and the second station's reading uses
-        the same value. Once a second sensor is added, pass its address as
-        s2_address and each station will get its own reading.
-
-    THREADING:
-        A background daemon thread polls the configured sensor(s) every
-        SENSOR_POLL_INTERVAL_S seconds. The kernel's 1-Wire read blocks for
-        ~750 ms per sensor (DS18B20 intrinsic conversion time), so reading
-        synchronously from the GUI thread freezes the UI. update() now just
-        returns the most recent cached value — non-blocking, instant return.
-
-    The update() method has the same signature as SimSensorManager so the
-    dashboard can swap between them without changes.
-
-    Usage:
-        # Find connected sensors first:
-        #   from .sensor import DS18B20
-        #   print(DS18B20.discover())   # e.g. ['28-000000b9f30a']
-        #
-        # Single-sensor (mirrored) configuration:
-        mgr = SensorManager(s1_address="28-000000b9f30a")
-        # Two-sensor configuration:
-        mgr = SensorManager(s1_address="28-xxxx", s2_address="28-yyyy")
-    """
 
     def __init__(
         self,
@@ -110,8 +72,7 @@ class SensorManager:
 
     def update(self, *, running: bool, active_s1: bool, active_s2: bool) -> dict:
         """Return the most recently cached {"S1": float, "S2": float}.
-
-        Non-blocking — the background thread does the actual sensor reads.
+        Non-blocking: the background thread does the actual sensor reads.
         running / active_s1 / active_s2 are kept in the signature for
         compatibility with SimSensorManager but aren't used (the real sensor
         always reads regardless of station mode).

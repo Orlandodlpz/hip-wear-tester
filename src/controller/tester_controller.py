@@ -111,20 +111,6 @@ class ArduinoMotorIO(MotorIO):
         self._resume_offset = 0
 
     def start_test(self, mode: StationMode, cycles: int, *, is_resume: bool = False) -> None:
-        """Start a fresh run, OR resume a paused one.
-
-        On a fresh start (is_resume=False, the default), all counters and
-        state are reset to zero. On a resume (is_resume=True), the public
-        counter and resume offset are PRESERVED — resume_test() in the
-        controller will have set them already, and start_test must not
-        clobber them.
-        """
-        # Drain any stale CYCLE/DONE/STOPPED lines that the previous run
-        # might have left in the serial input buffer. If we don't drain, those
-        # stale messages will be parsed by is_done() AFTER we send the new
-        # START, and they can corrupt the fresh counter (e.g. stale CYCLE:42
-        # from a prior run that was Stopped at 50 would set completed_cycles
-        # to 42 before any real new CYCLE:1 arrives).
         try:
             self._uno.poll_lines()  # discard
         except Exception:
@@ -215,8 +201,8 @@ class TesterController:
             # lateral_port="/dev/ttyACM0",                                                                                                                                                                          
             # top_port="/dev/ttyACM1",                                                                                                                                                                              
             # for testing with macbook, use these ports:                                                                                                                                                            
-            lateral_port="/dev/cu.usbmodem11301",
-            top_port="/dev/cu.usbmodem11401",
+            lateral_port="/dev/cu.usbmodem1201",
+            top_port="/dev/cu.usbmodem1301",
             baudrate=9600,
         )                                                                                                                                                                                                         
                                                                                                                                                                                                                       
@@ -237,10 +223,6 @@ class TesterController:
         # (b) restore the GUI counter so it picks up where it left off.
         self._cycles_at_pause: int = 0
 
-        # If the motor backend exposes connection state, surface a warning
-        # at startup when one or both Arduinos didn't connect. The app stays
-        # IDLE so the operator can plug in the missing board and try START
-        # — start_test() will refuse cleanly until both are available.
         uno = getattr(self._motor, "_uno", None)
         if uno is not None:
             lat_ok = uno.lateral_connected() if hasattr(uno, "lateral_connected") else True

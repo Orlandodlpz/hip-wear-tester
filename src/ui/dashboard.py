@@ -11,7 +11,7 @@ from ..data.logger import logger
 # wired; the manager mirrors its reading to both stations until a second
 # sensor is added (then pass its address as s2_address below).
 DS18B20_S1_ADDRESS = "28-000000b9f30a"
-DS18B20_S2_ADDRESS = "28-3ce1d4435060"  # set when the second sensor comes online
+DS18B20_S2_ADDRESS = "28-3ce1d4435060"
 
 from .panels.station_select import StationSelectPanel
 from .panels.status import StatusPanel
@@ -232,6 +232,7 @@ class Dashboard(tk.Frame):
                     elapsed_hhmmss=self._fmt_hhmmss(status.elapsed_s),
                     mode=(status.station_mode.value if status.station_mode else "UNKNOWN"),
                     run_state=status.run_state.value,
+                    cycles=status.completed_cycles,
                     t1=float(temps.get("S1", 0.0)),
                     t2=float(temps.get("S2", 0.0)),
                     side=status.side_motor.value,

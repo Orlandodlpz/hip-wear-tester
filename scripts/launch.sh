@@ -4,8 +4,9 @@
 #
 # This script:
 #   1. Locates the project directory (one level up from the script).
-#   2. Activates the project's Python venv if it exists.
-#   3. Runs main.py.
+#   2. Refuses to start if another instance is already running.
+#   3. Activates the project's Python venv if it exists.
+#   4. Runs main.py.
 #
 # Logs stdout/stderr to a rotating log file under ~/.hip-wear-tester/ so
 # crashes are diagnosable after the fact.
@@ -21,6 +22,18 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$HOME/.hip-wear-tester"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/app.log"
+
+# Single-instance guard. If main.py is already running, focus the existing
+# window (if wmctrl is installed) and exit. This is the most common cause
+# of "double-clicking the icon does nothing" — the second launch hits a
+# busy serial port and dies silently.
+if pgrep -f "python.*main\.py" >/dev/null; then
+    echo "[$(date)] Hip Wear Tester is already running; not starting a second instance." >> "$LOG_FILE"
+    if command -v wmctrl >/dev/null 2>&1; then
+        wmctrl -a "Hip Wear Tester" 2>/dev/null || true
+    fi
+    exit 0
+fi
 
 cd "$PROJECT_DIR"
 

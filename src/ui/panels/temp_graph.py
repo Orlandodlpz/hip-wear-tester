@@ -19,11 +19,6 @@ class TempGraphPanel(tk.LabelFrame):
         self.canvas = tk.Canvas(self, bg="#000000", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Bounded ring buffers — when full, the oldest point is dropped on
-        # append. The full-resolution data is in the CSV log; the graph only
-        # needs to show recent history. This bounds memory regardless of run
-        # length (a 5,000,000-cycle run at 1 Hz would have OOMed an unbounded
-        # list on a 2GB Pi).
         self.s1_points: deque = deque(maxlen=GRAPH_MAX_POINTS)
         self.s2_points: deque = deque(maxlen=GRAPH_MAX_POINTS)
 
@@ -63,13 +58,28 @@ class TempGraphPanel(tk.LabelFrame):
         x0, y0 = pad, h - pad
         x1, y1 = w - pad, pad
 
-        # Determine x range
-        max_x = 0.0
+        # Determine x range as a SLIDING WINDOW over the visible points.
+        # The deque is capped at GRAPH_MAX_POINTS, so once it's full the oldest
+        # points are evicted. We map x relative to [min_t, max_t] of whatever
+        # is currently in the buffers — not from 0 — so the graph always fills
+        # the full width regardless of run duration.
+        all_t: list[float] = []
         if self.s1_points:
-            max_x = max(max_x, self.s1_points[-1][0])
+            all_t.append(self.s1_points[0][0])
+            all_t.append(self.s1_points[-1][0])
         if self.s2_points:
-            max_x = max(max_x, self.s2_points[-1][0])
-        max_x = max(max_x, 1.0)
+            all_t.append(self.s2_points[0][0])
+            all_t.append(self.s2_points[-1][0])
+
+        if all_t:
+            min_x = min(all_t)
+            max_x = max(all_t)
+        else:
+            min_x, max_x = 0.0, 1.0
+
+        # Ensure the window is at least 1 second wide to avoid divide-by-zero
+        if max_x - min_x < 1.0:
+            max_x = min_x + 1.0
 
         # Determine y range from data (with padding)
         all_y = [p[1] for p in self.s1_points] + [p[1] for p in self.s2_points]
@@ -86,13 +96,15 @@ class TempGraphPanel(tk.LabelFrame):
             y_max = y_min + 3.0
 
         # Grid + ticks
-        x_step = self._nice_x_step(max_x)       # seconds per vertical grid line
+        x_span = max_x - min_x
+        x_step = self._nice_x_step(x_span)       # seconds per vertical grid line
         y_step = self._nice_y_step(y_min, y_max)
 
-        # Vertical grid lines and x labels
-        t = 0.0
+        # Vertical grid lines and x labels — anchor to real timestamps so the
+        # labels always show the true elapsed time (HH:MM), not window-relative.
+        t = self._ceil_to(min_x, x_step)
         while t <= max_x + 1e-6:
-            x = self._map_x(t, x0, x1, max_x)
+            x = self._map_x(t, x0, x1, min_x, max_x)
             c.create_line(x, y0, x, y1, fill=GRID)
             c.create_text(x, y0 + 18, text=fmt_hhmm(t), fill=MUTED, font=("DejaVu Sans", 9))
             t += x_step
@@ -112,8 +124,8 @@ class TempGraphPanel(tk.LabelFrame):
         c.create_text(18, (y0 + y1) / 2, text="Temp (°C)", fill=FG, angle=90)
 
         # Draw series (downsampled for performance)
-        self._draw_series(self.s1_points, x0, y0, x1, y1, max_x, y_min, y_max, color=GREEN, dash=None)
-        self._draw_series(self.s2_points, x0, y0, x1, y1, max_x, y_min, y_max, color=BLUE, dash=(4, 3))
+        self._draw_series(self.s1_points, x0, y0, x1, y1, min_x, max_x, y_min, y_max, color=GREEN, dash=None)
+        self._draw_series(self.s2_points, x0, y0, x1, y1, min_x, max_x, y_min, y_max, color=BLUE, dash=(4, 3))
 
         # Legend
         lx = x1 - 160
@@ -124,7 +136,7 @@ class TempGraphPanel(tk.LabelFrame):
         c.create_line(lx + 10, ly + 30, lx + 40, ly + 30, fill=BLUE, width=2, dash=(4, 3))
         c.create_text(lx + 50, ly + 30, text="Station 2", fill=FG, anchor="w")
 
-    def _draw_series(self, pts, x0, y0, x1, y1, max_x, y_min, y_max, color, dash):
+    def _draw_series(self, pts, x0, y0, x1, y1, min_x, max_x, y_min, y_max, color, dash):
         n = len(pts)
         if n < 2:
             return
@@ -140,15 +152,15 @@ class TempGraphPanel(tk.LabelFrame):
         coords = []
         for i in range(0, n, step):
             t, val = pts_list[i]
-            x = self._map_x(t, x0, x1, max_x)
+            x = self._map_x(t, x0, x1, min_x, max_x)
             y = self._map_y(val, y0, y1, y_min, y_max)
             coords.extend([x, y])
 
         self.canvas.create_line(*coords, fill=color, width=2, dash=dash)
 
     @staticmethod
-    def _map_x(t, x0, x1, max_x):
-        return x0 + (x1 - x0) * (t / max_x)
+    def _map_x(t, x0, x1, min_x, max_x):
+        return x0 + (x1 - x0) * ((t - min_x) / (max_x - min_x))
 
     @staticmethod
     def _map_y(v, y0, y1, y_min, y_max):
