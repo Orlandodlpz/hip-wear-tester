@@ -19,7 +19,7 @@ from .panels.buttons import ButtonsPanel
 from .panels.temp_display import TempDisplayPanel
 from .panels.temp_graph import TempGraphPanel
 
-from .theme import BG, PANEL, FG, GREEN, FONT_TITLE, REFRESH_MS, LOG_EVERY_S
+from .theme import BG, PANEL, FG, GREEN, RED, GRID, FONT_TITLE, REFRESH_MS, LOG_EVERY_S
 
 
 class Dashboard(tk.Frame):
@@ -86,6 +86,40 @@ class Dashboard(tk.Frame):
         )
         init_note.pack(fill="x", padx=12, pady=(0, 12))
 
+        # ---- Target cycles input ----
+        cycles_frame = tk.Frame(self.init_tab, bg=PANEL)
+        cycles_frame.pack(fill="x", padx=12, pady=(0, 16))
+
+        tk.Label(
+            cycles_frame,
+            text="Target Cycles:",
+            font=("DejaVu Sans", 16, "bold"),
+            bg=PANEL, fg=FG,
+        ).pack(side="left", padx=(0, 12))
+
+        self._cycles_var = tk.StringVar(value=str(self.controller._target_cycles))
+        self._cycles_entry = tk.Entry(
+            cycles_frame,
+            textvariable=self._cycles_var,
+            font=("DejaVu Sans", 16),
+            width=10,
+            bg="#1e1e1e", fg=GREEN,
+            insertbackground=GREEN,
+            relief="flat",
+            highlightthickness=2,
+            highlightbackground=GRID,
+            highlightcolor=GREEN,
+        )
+        self._cycles_entry.pack(side="left")
+
+        self._cycles_error = tk.Label(
+            cycles_frame,
+            text="",
+            font=("DejaVu Sans", 13),
+            bg=PANEL, fg=RED,
+        )
+        self._cycles_error.pack(side="left", padx=(12, 0))
+
         self.btn_init_start = tk.Button(
             self.init_tab,
             text="START TEST",
@@ -94,7 +128,7 @@ class Dashboard(tk.Frame):
             padx=30, pady=18,
             command=self._start_from_home
         )
-        self.btn_init_start.place(relx=0.5, rely=0.78, anchor="center")
+        self.btn_init_start.place(relx=0.5, rely=0.82, anchor="center")
 
         # ========= Run/Status tab =========
         top_row = tk.Frame(self.run_tab, bg=PANEL)
@@ -129,6 +163,19 @@ class Dashboard(tk.Frame):
         self.nb.select(self.run_tab)
 
     def _start_from_home(self) -> None:
+        # Validate and apply the cycle count from the input box
+        raw = self._cycles_var.get().strip()
+        try:
+            cycles = int(raw)
+            self.controller.set_cycles(cycles)
+            self._cycles_error.configure(text="")
+        except ValueError:
+            self._cycles_error.configure(text="Enter a whole number.")
+            return
+        except Exception as e:
+            self._cycles_error.configure(text=str(e))
+            return
+
         try:
             self.controller.start_test()
             self.nb.select(self.run_tab)
@@ -209,7 +256,9 @@ class Dashboard(tk.Frame):
         else:
             self.header_state.configure(text=f"IDLE — {mode}", fg=FG)
 
-        self.btn_init_start.configure(state=("normal" if status.run_state == RunState.IDLE else "disabled"))
+        idle = status.run_state == RunState.IDLE
+        self.btn_init_start.configure(state=("normal" if idle else "disabled"))
+        self._cycles_entry.configure(state=("normal" if idle else "disabled"))
 
     def _handle_logging(self, status, temps: dict) -> None:
         now = time.time()
