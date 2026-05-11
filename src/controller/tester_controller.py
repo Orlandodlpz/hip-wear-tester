@@ -170,13 +170,6 @@ class ArduinoMotorIO(MotorIO):
                 if n is not None:
                     if source == "LAT":
                         self._lat_last_cycle = n
-                        # Public counter = lateral's CYCLE:n + resume_offset.
-                        # On a fresh start, _resume_offset is 0 so the GUI
-                        # shows 1, 2, 3, ... as expected. After a resume,
-                        # _resume_offset is set to the cycle count at pause
-                        # so the counter continues from where it left off
-                        # (e.g. paused at 387, resume sees CYCLE:1 from the
-                        # firmware → public counter shows 388).
                         candidate = n + self._resume_offset
                         if candidate > self.completed_cycles:
                             self.completed_cycles = candidate
@@ -198,11 +191,11 @@ class TesterController:
     def __init__(self, motor_io: Optional[MotorIO] = None) -> None:                                                                                                                                               
         self._motor = motor_io if motor_io is not None else ArduinoMotorIO(
             # for testing with rp 4, use these ports:                                                                                                                                                               
-            # lateral_port="/dev/ttyACM0",                                                                                                                                                                          
-            # top_port="/dev/ttyACM1",                                                                                                                                                                              
+            lateral_port="/dev/ttyACM0",                                                                                                                                                                          
+            top_port="/dev/ttyACM1",                                                                                                                                                                              
             # for testing with macbook, use these ports:                                                                                                                                                            
-            lateral_port="/dev/cu.usbmodem1201",
-            top_port="/dev/cu.usbmodem1301",
+            # lateral_port="/dev/cu.usbmodem1201",
+            # top_port="/dev/cu.usbmodem1301",
             baudrate=9600,
         )                                                                                                                                                                                                         
                                                                                                                                                                                                                       
@@ -324,7 +317,7 @@ class TesterController:
             self._last_message = "Already complete; nothing to resume."
             return
 
-        # IMPORTANT: prime completed_cycles and _resume_offset BEFORE calling
+        # Important: prime completed_cycles and _resume_offset BEFORE calling
         # start_test(is_resume=True). is_resume=True tells the motor backend
         # NOT to clobber these fields. After this, when the Arduinos send
         # CYCLE:1 (their fresh post-resume count), is_done() will compute
