@@ -12,10 +12,6 @@
   // 3200 * 23.4/360 = 208 pulses per outer leg (exact integer)
   const long PULSES_PER_LEG = (long)(PULSES_PER_REV * DEG_PER_LEG / 360.0f);
 
-  // ---------- Timing ----------
-  // Each OUTER leg targets this wall-time. The middle leg targets 2x.
-  // MUST match top_arduino.ino so both Arduinos reverse at the same instant.
-  // 250 ms outer + 500 ms middle + 250 ms outer = 1000 ms = 1 Hz cycle.
   const unsigned long LEG_DURATION_MS = 250;
 
   // ---------- Per-pulse delay derived from leg duration ----------
@@ -86,13 +82,13 @@
 
   void moveSteps(int steps, bool dir){
     digitalWrite(LAT_DIR, dir);
-    delay(18);
+    delay(17);
 
     for (int i = 0; i < steps; i++){
       digitalWrite(LAT_STEP, LOW);
-      delayMicroseconds(580);
+      delayMicroseconds(561);
       digitalWrite(LAT_STEP, HIGH);
-      delayMicroseconds(580);
+      delayMicroseconds(561);
     }
   }
 

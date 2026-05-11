@@ -12,7 +12,7 @@
   // Outer leg = DEG_PER_LEG. Middle leg = 2 * DEG_PER_LEG.
   const float DEG_PER_LEG     = 9.0f;
   const long  PULSES_PER_REV  = 3200;        // 1/32 microstep on a 1.8 deg motor
-  // 6400 * 9/360 = 80 pulses per outer leg (exact)
+  // 3200 * 9/360 = 80 pulses per outer leg (exact)
   const long PULSES_PER_LEG = (long)(PULSES_PER_REV * DEG_PER_LEG / 360.0f);
 
   // ---------- Run state ----------
@@ -47,13 +47,6 @@
     }
   }
 
-  // ---------- moveSteps: one motor ----------
-  // Mirrors the lateral firmware's moveSteps function:
-  //   - Set DIR
-  //   - 20 ms delay so the rotor physically settles before stepping resumes
-  //   - Pulse STEP `steps` times with 490 us LOW + 490 us HIGH per pulse
-  //     (~980 us total per pulse, identical pacing to the lateral firmware
-  //     for visual/audio symmetry between motors)
   void moveSteps(int steps, bool dir, int dirPin, int stepPin) {
     digitalWrite(dirPin, dir);
     delay(17);
@@ -67,8 +60,6 @@
   }
 
   // ---------- moveSteps: both motors simultaneously ----------
-  // BOTH mode: pulse the two STEP pins on the same edge so the motors step
-  // in lockstep. Same 20 ms settling delay after the DIR change.
   void moveStepsBoth(int steps, bool dir) {
     digitalWrite(TOP_LEFT_DIR,  dir), digitalWrite(TOP_RIGHT_DIR, dir);
     delay(17);
