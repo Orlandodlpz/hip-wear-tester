@@ -125,7 +125,8 @@ class logger:
             matplotlib.use("Agg")  # headless safe
             import matplotlib.pyplot as plt
             from matplotlib.ticker import FuncFormatter, MaxNLocator
-        except Exception:
+        except Exception as e:
+            print(f"[logger] matplotlib not available, skipping graph: {e}")
             return
 
         def fmt_hhmm(x, _pos=None):
@@ -159,6 +160,11 @@ class logger:
         for txt in leg.get_texts():
             txt.set_color("white")
 
-        fig.tight_layout()
-        fig.savefig(self.graph_path, facecolor=fig.get_facecolor())
-        plt.close(fig)
+        try:
+            fig.tight_layout()
+            fig.savefig(self.graph_path, facecolor=fig.get_facecolor())
+            print(f"[logger] graph saved to {self.graph_path}")
+        except Exception as e:
+            print(f"[logger] failed to save graph: {e}")
+        finally:
+            plt.close(fig)
