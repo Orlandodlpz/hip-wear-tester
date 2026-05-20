@@ -14,9 +14,9 @@ A portable hip wear testing system for orthopedic implant durability research, b
 
 One **overall cycle** = one back-and-forth motion on every active motor, with both Arduinos finishing their motion at the same wall-clock time. The GUI cycle counter advances by one each time both Arduinos report `CYCLE:n` for the same `n`.
 
-- **Lateral motor**: 1 back-and-forth per cycle, **11.5°** forward + 11.5° backward (centered around home — the rig must be pre-positioned at the middle of the 23° sweep before each test). Total angular range covered = 23°.
-- **Top Left motor (S1)**: 1 back-and-forth per cycle, **9°** forward + 9° backward.
-- **Top Right motor (S2)**: 1 back-and-forth per cycle, **9°** forward + 9° backward.
+- **Lateral motor**: 1 back-and-forth per cycle, **23°** forward + 46° backward + 23° forward (Original postion 0°).
+- **Top Left motor (S1)**: 1 back-and-forth per cycle, **9°** forward + 18° backward + 9 forward (Original postion 0°).
+- **Top Right motor (S2)**: 1 back-and-forth per cycle, **9°** forward + 18° backward + 9° forward (Original postion 0°).
 
 Both firmwares share a `LEG_DURATION_MS` constant (default 100 ms) that controls the wall-time of each forward and backward leg. **Both `.ino` files must use the same value** so the two Arduinos reverse direction at the same instant. Default settings give a full overall cycle of ~200 ms (≈5 Hz).
 
@@ -24,8 +24,8 @@ Pulse counts are derived from the driver's microstepping setting:
 
 | Motor | Driver pulses/rev | Pulses per leg (one direction) |
 |-------|-------------------|--------------------------------|
-| Top L / Top R | 6,400 (1/32 microstep) | 6400 × 9/360 = **160** (exact) |
-| Lateral       | 25,000               | 25000 × 11.5/360 = **799** (rounds 0.006°) |
+| Top L / Top R | 3,200 (1/16 microstep) | 3,200 × 9/360 = **80** (exact) |
+| Lateral       | 3,200 (1/16 microstep) | 3,200 × 23.4/360 = **208** (exact) |
 
 To keep wall-time identical across the two firmwares despite integer rounding in the per-pulse delay, each firmware adds a small `LEG_PAD_US` `delayMicroseconds()` at the end of every leg. With current settings, the pad is 0 µs on the top side (math divides cleanly) and 125 µs on the lateral side.
 
